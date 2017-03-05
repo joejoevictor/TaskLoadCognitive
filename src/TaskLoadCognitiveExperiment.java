@@ -192,7 +192,7 @@ public class TaskLoadCognitiveExperiment {
         final long experimentStartTime = System.currentTimeMillis();
         final long experimentEndTime = experimentStartTime + FOUR_MINUTES_IN_MILLIS;
 
-        while (!shouldStop) {
+        while (!shouldStop && currentStep < numbers.length) {
 
             if (System.currentTimeMillis() > experimentEndTime) {
                 break;
