@@ -128,12 +128,13 @@ public class Application {
 
                 @Override
                 public void keyReleased(KeyEvent e) {
-                    if (!inInstructions) {
+                    if (!inInstructions || (experiment != null && !experiment.getStarted())) {
                         return;
                     }
 
                     if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                         if (currentInstruction >= instructions.size()) {
+                            currentInstruction = 0;
                             resetToStartingPage();
                         } else {
                             mainFrame.getContentPane().removeAll();

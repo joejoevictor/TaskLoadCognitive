@@ -272,6 +272,11 @@ public class TaskLoadCognitiveExperiment {
         LOGGER.info("Experiment finished");
 //        printResult();
         writeInputCSV();
+        started = false;
+    }
+
+    public boolean getStarted() {
+        return this.started;
     }
 
     private void printResult() {
