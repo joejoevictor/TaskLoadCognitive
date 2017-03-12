@@ -11,6 +11,7 @@ public class TaskLoadCognitiveExperiment {
     private static final Logger LOGGER = Logger.getLogger(TaskLoadCognitiveExperiment.class.getName());
     private static final int DEFAULT_NUMBER_OF_NUMBERS = 50;
     private static final long FOUR_MINUTES_IN_MILLIS = 4 * 60 * 1000;
+    private static final long ONE_MINUTES_IN_MILLIS = 60 * 1000;
     private static final long PAUSE_INTERVAL_SECONDS_IN_MILLIS = 1600;
     private static final long DISPLAY_INTERVAL_SECONDS_IN_MILLIS = 500;
 
@@ -201,7 +202,8 @@ public class TaskLoadCognitiveExperiment {
         LOGGER.info(String.format("Starting experiment with user uid=%s", uid));
 
         final long experimentStartTime = System.currentTimeMillis();
-        final long experimentEndTime = experimentStartTime + FOUR_MINUTES_IN_MILLIS;
+        final long experimentEndTime = experimentStartTime
+                + (isPracticeMode == 0 ? ONE_MINUTES_IN_MILLIS : FOUR_MINUTES_IN_MILLIS);
 
         while (!shouldStop && currentStep < numbers.length) {
 
