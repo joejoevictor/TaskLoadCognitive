@@ -5,8 +5,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -27,28 +29,28 @@ public class Application {
     private Thread applicationThread;
     private Map<Integer, ImagePanel> images;
     private ImagePanel blackBackground;
-    private ImagePanel instructionEasy;
-    private ImagePanel instructionMedium;
-    private ImagePanel instructionDifficult;
     private boolean inInstructions;
+    private boolean inPreExperimentInstructions;
     private final ExecutorService pool;
     private int currentInstruction = 0;
+    private String uid;
+    private ExperimentLevel level;
+    private int isPracticeMode;
 
-    private java.util.List<ImagePanel> instructions;
+    private final Map<ExperimentLevel, Instruction> instructionMap;
 
     private Application() {
         inInstructions = false;
+        inPreExperimentInstructions = false;
+        isPracticeMode = 0;
         experiment = null;
         self = this;
         images = new HashMap<>();
         blackBackground = new ImagePanel("images/black.png");
-        instructionEasy = new ImagePanel("images/instructionsEasy.png");
-        instructionMedium = new ImagePanel("images/instructionsMedium.png");
-        instructionDifficult = new ImagePanel("images/instructionsDifficult.png");
-        instructions = new ArrayList<>();
-        instructions.add(instructionEasy);
-        instructions.add(instructionMedium);
-        instructions.add(instructionDifficult);
+
+        instructionMap = new HashMap<>();
+        Arrays.asList(ExperimentLevel.values()).forEach(level -> instructionMap.put(level, new Instruction(level)));
+
         pool = Executors.newFixedThreadPool(DEFAULT_NUM_THREADS);
     }
 
@@ -87,6 +89,43 @@ public class Application {
         mainFrame.getContentPane().repaint();
     }
 
+    private void showInstruction(final ExperimentLevel level) {
+        inPreExperimentInstructions = true;
+        mainFrame.getContentPane().removeAll();
+        mainFrame.getContentPane().add(instructionMap.get(level));
+        mainFrame.getContentPane().revalidate();
+        mainFrame.getContentPane().repaint();
+        LOGGER.info(String.format("InstructionShown=%s", level.getName()));
+
+        mainFrame.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                LOGGER.info(String.format("inPreExperimentInstructions=%s", inPreExperimentInstructions));
+                if (inPreExperimentInstructions) {
+                    inPreExperimentInstructions = false;
+                    startExperiment(uid, level);
+                }
+            }
+        });
+    }
+
+    private void startExperiment(final String uid, final ExperimentLevel level) {
+        experiment = new TaskLoadCognitiveExperiment(uid, level, isPracticeMode, self);
+        final Runnable runnable = () -> experiment.start();
+        applicationThread = new Thread(runnable);
+        pool.submit(applicationThread);
+    }
+
     private void initMenu() {
         // Initialize main menu bar
         final JMenuBar menuBar = new JMenuBar();
@@ -109,9 +148,10 @@ public class Application {
                 return;
             }
 
+            final ExperimentLevel[] levels = ExperimentLevel.values();
             inInstructions = true;
             mainFrame.getContentPane().removeAll();
-            mainFrame.getContentPane().add(instructions.get(currentInstruction++));
+            mainFrame.getContentPane().add(instructionMap.get(levels[currentInstruction++]));
             mainFrame.getContentPane().revalidate();
             mainFrame.getContentPane().repaint();
 
@@ -128,17 +168,17 @@ public class Application {
 
                 @Override
                 public void keyReleased(KeyEvent e) {
-                    if (!inInstructions || (experiment != null && !experiment.getStarted())) {
+                    if (!inInstructions || (experiment != null && !experiment.getStarted()) || inPreExperimentInstructions) {
                         return;
                     }
 
                     if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-                        if (currentInstruction >= instructions.size()) {
+                        if (currentInstruction >= levels.length) {
                             currentInstruction = 0;
                             resetToStartingPage();
                         } else {
                             mainFrame.getContentPane().removeAll();
-                            mainFrame.getContentPane().add(instructions.get(currentInstruction++));
+                            mainFrame.getContentPane().add(instructionMap.get(levels[currentInstruction++]));
                             mainFrame.getContentPane().revalidate();
                             mainFrame.getContentPane().repaint();
                             LOGGER.info("Instruction: " + currentInstruction);
@@ -151,7 +191,7 @@ public class Application {
         start.addActionListener(e -> {
             System.out.println("Starting experiment");
 
-            final String uid = JOptionPane.showInputDialog(
+            uid = JOptionPane.showInputDialog(
                     mainFrame,
                     "Enter your User ID",
                     "Enter UID",
@@ -168,7 +208,7 @@ public class Application {
                     ExperimentLevel.MEDIUM,
                     ExperimentLevel.DIFFICULT
             };
-            final ExperimentLevel level = (ExperimentLevel) JOptionPane.showInputDialog(
+            level = (ExperimentLevel) JOptionPane.showInputDialog(
                     mainFrame,
                     "Choose task level",
                     "Choose Level",
@@ -181,19 +221,15 @@ public class Application {
                 resetToStartingPage();
                 return;
             }
+            isPracticeMode = JOptionPane.showConfirmDialog(
+                mainFrame,
+                "Do you want to practice? If so, click 'Yes' and the result of this run won't be recorded.",
+                "Practice mode",
+                    JOptionPane.YES_NO_OPTION
+                    );
+            LOGGER.info(String.format("isPracticeMode=%s", isPracticeMode));
             LOGGER.info(String.format("Level=%s", level.getName()));
-
-            if (experiment == null) {
-                experiment = new TaskLoadCognitiveExperiment(uid, level, self);
-            }
-
-            final Runnable runnable = () -> experiment.start();
-
-
-            applicationThread = new Thread(runnable);
-            pool.submit(applicationThread);
-
-            pool.shutdown();
+            showInstruction(level);
         });
 
         exit.addActionListener(new ActionListener() {
@@ -210,6 +246,26 @@ public class Application {
         mainFrame.setJMenuBar(menuBar);
         mainFrame.revalidate();
         mainFrame.repaint();
+    }
+
+    private void waitForSpace() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        KeyEventDispatcher dispatcher = new KeyEventDispatcher() {
+            // Anonymous class invoked from EDT
+            public boolean dispatchKeyEvent(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_SPACE)
+                    latch.countDown();
+                return false;
+            }
+        };
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(dispatcher);
+        latch.await();  // current thread waits here until countDown() is called
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(dispatcher);
+    }
+
+    public void endExperiment() {
+        JOptionPane.showMessageDialog(mainFrame.getContentPane(), "The experiment has end");
+        resetToStartingPage();
     }
 
     private void resetToStartingPage() {

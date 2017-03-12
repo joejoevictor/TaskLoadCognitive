@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 public class TaskLoadCognitiveExperiment {
     private static final Logger LOGGER = Logger.getLogger(TaskLoadCognitiveExperiment.class.getName());
     private static final int DEFAULT_NUMBER_OF_NUMBERS = 50;
-    private static final long FOUR_MINUTES_IN_MILLIS = 4 * 60 * 1000;
+    private static final long FOUR_MINUTES_IN_MILLIS = 10 * 1000;
     private static final long PAUSE_INTERVAL_SECONDS_IN_MILLIS = 1600;
     private static final long DISPLAY_INTERVAL_SECONDS_IN_MILLIS = 500;
 
@@ -24,6 +24,7 @@ public class TaskLoadCognitiveExperiment {
     private ExperimentLevel level;
     private Task currentTask;
     private boolean started;
+    private int isPracticeMode;
 
     private static final List<String> CSV_HEADERS = new ArrayList<String>() {{
         add("Task");
@@ -34,13 +35,15 @@ public class TaskLoadCognitiveExperiment {
 
     public TaskLoadCognitiveExperiment(final String uid,
                                        final ExperimentLevel level,
+                                       final int isPracticeMode,
                                        final Application application) {
-        this(uid, DEFAULT_NUMBER_OF_NUMBERS, level, application);
+        this(uid, DEFAULT_NUMBER_OF_NUMBERS, level, isPracticeMode, application);
     }
 
     public TaskLoadCognitiveExperiment(final String uid,
                                        final int numOfNumbers,
                                        final ExperimentLevel level,
+                                       final int isPracticeMode,
                                        final Application application) {
         this.uid = uid;
         this.score = 0;
@@ -52,6 +55,7 @@ public class TaskLoadCognitiveExperiment {
         this.shouldStop = false;
         this.currentTask = null;
         this.started = false;
+        this.isPracticeMode = isPracticeMode;
         generateNumbers();
         initTasks();
     }
@@ -61,6 +65,11 @@ public class TaskLoadCognitiveExperiment {
     }
 
     private void writeInputCSV() {
+        if (isPracticeMode == 0) {
+            application.endExperiment();
+            return;
+        }
+
         final Date now = new Date();
         final TimeZone tz = TimeZone.getTimeZone("PST");
         final DateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm"); // Quoted "Z" to indicate UTC, no timezone offset
@@ -107,6 +116,8 @@ public class TaskLoadCognitiveExperiment {
 
             fileWriter.write(csvBuilder.toString());
             fileWriter.close();
+
+            application.endExperiment();
         } catch (final IOException e) {
             LOGGER.severe("Failed to write to " + outputFileName);
         }
