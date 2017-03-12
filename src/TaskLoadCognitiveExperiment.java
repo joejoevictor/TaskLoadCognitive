@@ -80,6 +80,8 @@ public class TaskLoadCognitiveExperiment {
         fileNameStringBuilder.append(isOnWindows() ? "C:\\tmp\\" : "/tmp/");
         fileNameStringBuilder.append(this.uid);
         fileNameStringBuilder.append("_");
+        fileNameStringBuilder.append(this.level.getName());
+        fileNameStringBuilder.append("_");
         fileNameStringBuilder.append(df.format(now));
         fileNameStringBuilder.append(".csv");
         final String outputFileName = fileNameStringBuilder.toString();

@@ -89,7 +89,7 @@ public class Application {
         mainFrame.getContentPane().repaint();
     }
 
-    private void showInstruction(final ExperimentLevel level) {
+    private void showInstruction() {
         inPreExperimentInstructions = true;
         mainFrame.getContentPane().removeAll();
         mainFrame.getContentPane().add(instructionMap.get(level));
@@ -229,7 +229,7 @@ public class Application {
                     );
             LOGGER.info(String.format("isPracticeMode=%s", isPracticeMode));
             LOGGER.info(String.format("Level=%s", level.getName()));
-            showInstruction(level);
+            showInstruction();
         });
 
         exit.addActionListener(new ActionListener() {
