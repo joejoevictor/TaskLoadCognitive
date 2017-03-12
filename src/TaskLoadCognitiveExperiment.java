@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 public class TaskLoadCognitiveExperiment {
     private static final Logger LOGGER = Logger.getLogger(TaskLoadCognitiveExperiment.class.getName());
-    private static final int DEFAULT_NUMBER_OF_NUMBERS = 50;
+    private static final int DEFAULT_NUMBER_OF_NUMBERS = 250;
     private static final long FOUR_MINUTES_IN_MILLIS = 4 * 60 * 1000;
     private static final long ONE_MINUTES_IN_MILLIS = 60 * 1000;
     private static final long PAUSE_INTERVAL_SECONDS_IN_MILLIS = 1600;
@@ -92,6 +92,7 @@ public class TaskLoadCognitiveExperiment {
             csvBuilder.append(this.uid);
             csvBuilder.append(", Experiment Time: ");
             csvBuilder.append(now.toString());
+            csvBuilder.append(", Level: " + level.getName());
             csvBuilder.append("\n");
 
             for (int i = 0; i < CSV_HEADERS.size(); i++) {
@@ -205,6 +206,12 @@ public class TaskLoadCognitiveExperiment {
         final long experimentEndTime = experimentStartTime
                 + (isPracticeMode == 0 ? ONE_MINUTES_IN_MILLIS : FOUR_MINUTES_IN_MILLIS);
 
+        try {
+            Thread.sleep(PAUSE_INTERVAL_SECONDS_IN_MILLIS);
+        } catch (final InterruptedException e) {
+            LOGGER.warning("Thread interrupted");
+        }
+
         while (!shouldStop && currentStep < numbers.length) {
 
             if (System.currentTimeMillis() > experimentEndTime) {
@@ -220,20 +227,21 @@ public class TaskLoadCognitiveExperiment {
                 break;
             }
 
-            try {
-                Thread.sleep(PAUSE_INTERVAL_SECONDS_IN_MILLIS);
-            } catch (final InterruptedException e) {
-                LOGGER.warning("Thread interrupted");
-            }
             currentTask.setStarted();
             currentTask.setStartTime(System.currentTimeMillis());
 
             application.displayTask(numbers[currentStep]);
             final long endTime = System.currentTimeMillis() + DISPLAY_INTERVAL_SECONDS_IN_MILLIS;
-
+            final long endKeypressTime = endTime + PAUSE_INTERVAL_SECONDS_IN_MILLIS;
+            boolean cleared = false;
             while (!shouldStop) {
-                if (System.currentTimeMillis() > endTime) {
+                if (System.currentTimeMillis() > endKeypressTime) {
                     break;
+                }
+
+                if (System.currentTimeMillis() > endTime && !cleared) {
+                    application.clearScreen();
+                    cleared = true;
                 }
             }
             currentTask.setEnded();
