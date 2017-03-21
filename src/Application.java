@@ -6,8 +6,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -63,14 +65,25 @@ public class Application {
     private void initBackground() {
         final StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<html>");
-        htmlBuilder.append("<h1>Welcome to Task Load Cognitive!</h1>");
-        htmlBuilder.append("<h1>PLEASE READ INSTRUCTIONS BEFORE STARTING!</h1>");
+        htmlBuilder.append("<h1>Welcome!</h1>");
+        htmlBuilder.append("<h1>Click the start button to begin</h1>");
         htmlBuilder.append("</html>");
         final JLabel label = new JLabel(htmlBuilder.toString(), SwingConstants.CENTER);
         label.setOpaque(true);
         label.setBackground(Color.BLACK);
         label.setForeground(Color.WHITE);
+        final JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(Color.BLACK);
+        final JButton button = new JButton("Start");
+        button.setBackground(Color.BLACK);
+        button.setOpaque(true);
+        button.setPreferredSize(new Dimension(160, 40));
+        buttonPanel.add(button);
+        button.addActionListener(e -> start());
+        mainFrame.getContentPane().setLayout(new GridLayout(2,1));
         mainFrame.getContentPane().add(label);
+        mainFrame.getContentPane().add(buttonPanel);
+        mainFrame.getContentPane().setBackground(Color.BLACK);
     }
 
     public void displayTask(final int number) {
@@ -188,49 +201,7 @@ public class Application {
             });
         });
 
-        start.addActionListener(e -> {
-            System.out.println("Starting experiment");
-
-            uid = JOptionPane.showInputDialog(
-                    mainFrame,
-                    "Enter your User ID",
-                    "Enter UID",
-                    JOptionPane.NO_OPTION
-            );
-            if (uid == null) {
-                resetToStartingPage();
-                return;
-            }
-            LOGGER.info(String.format("UID=%s", uid));
-
-            final ExperimentLevel[] levels = new ExperimentLevel[] {
-                    ExperimentLevel.EASY,
-                    ExperimentLevel.MEDIUM,
-                    ExperimentLevel.DIFFICULT
-            };
-            level = (ExperimentLevel) JOptionPane.showInputDialog(
-                    mainFrame,
-                    "Choose task level",
-                    "Choose Level",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    levels,
-                    levels[0]
-            );
-            if (level == null) {
-                resetToStartingPage();
-                return;
-            }
-            isPracticeMode = JOptionPane.showConfirmDialog(
-                mainFrame,
-                "Do you want to practice? If so, click 'Yes' and the result of this run won't be recorded.",
-                "Practice mode",
-                    JOptionPane.YES_NO_OPTION
-                    );
-            LOGGER.info(String.format("isPracticeMode=%s", isPracticeMode));
-            LOGGER.info(String.format("Level=%s", level.getName()));
-            showInstruction();
-        });
+        start.addActionListener(e -> start());
 
         exit.addActionListener(new ActionListener() {
             @Override
@@ -246,6 +217,50 @@ public class Application {
         mainFrame.setJMenuBar(menuBar);
         mainFrame.revalidate();
         mainFrame.repaint();
+    }
+
+    private void start() {
+        mainFrame.getContentPane().removeAll();
+        mainFrame.getContentPane().setLayout(new GridLayout(1, 1));
+        uid = JOptionPane.showInputDialog(
+                mainFrame,
+                "Enter your participant ID",
+                "Enter Participant ID",
+                JOptionPane.NO_OPTION
+        );
+        if (uid == null) {
+            resetToStartingPage();
+            return;
+        }
+        LOGGER.info(String.format("UID=%s", uid));
+
+        final ExperimentLevel[] levels = new ExperimentLevel[] {
+                ExperimentLevel.EASY,
+                ExperimentLevel.MEDIUM,
+                ExperimentLevel.DIFFICULT
+        };
+        level = (ExperimentLevel) JOptionPane.showInputDialog(
+                mainFrame,
+                "Choose task level",
+                "Choose Level",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                levels,
+                levels[0]
+        );
+        if (level == null) {
+            resetToStartingPage();
+            return;
+        }
+        isPracticeMode = JOptionPane.showConfirmDialog(
+                mainFrame,
+                "Do you want to practice? If so, click 'Yes' and the result of this run won't be recorded.",
+                "Practice mode",
+                JOptionPane.YES_NO_OPTION
+        );
+        LOGGER.info(String.format("isPracticeMode=%s", isPracticeMode));
+        LOGGER.info(String.format("Level=%s", level.getName()));
+        showInstruction();
     }
 
     private void waitForSpace() throws Exception {
@@ -288,7 +303,7 @@ public class Application {
         mainFrame.setVisible(true);
         mainFrame.setFocusable(true);
         mainFrame.setFocusTraversalKeysEnabled(false);
-
+        mainFrame.setResizable(false);
         mainFrame.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
