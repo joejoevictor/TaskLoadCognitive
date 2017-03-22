@@ -303,7 +303,6 @@ public class Application {
         mainFrame.setVisible(true);
         mainFrame.setFocusable(true);
         mainFrame.setFocusTraversalKeysEnabled(false);
-        mainFrame.setResizable(false);
         mainFrame.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
